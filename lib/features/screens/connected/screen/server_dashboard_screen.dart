@@ -84,6 +84,31 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
     }
   }
 
+  // host joining and leaving room
+
+  void _hostJoinRoom(String roomId) {
+    final success = ref.read(commslyServerProvider).hostJoinRoom(roomId);
+    if (!mounted) return;
+    if (success) {
+      setState(() {});
+      _showMessage('You joined the room.');
+    } else {
+      _showMessage('Unable to join room.');
+    }
+  }
+
+  void _hostLeaveRoom(String roomId) {
+    final success = ref.read(commslyServerProvider).hostLeaveRoom(roomId);
+    if (!mounted) return;
+
+    if (success) {
+      setState(() {});
+      _showMessage('You left the room.');
+    } else {
+      _showMessage('Unable to leave room.');
+    }
+  }
+
   void _showMessage(String message) {
     if (!mounted) return;
 
@@ -636,7 +661,8 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
               (room) => _hostRoomCard(
                 roomId: room.id,
                 name: room.name,
-                memberCount: room.members.length,
+                memberCount: room.memberCount,
+                isJoined: room.hostJoined,
               ),
             ),
 
@@ -686,6 +712,7 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
     required String roomId,
     required String name,
     required int memberCount,
+    required bool isJoined,
   }) {
     return Container(
       margin: const EdgeInsets.only(bottom: 12),
@@ -694,21 +721,23 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
       child: Row(
         children: [
           Container(
-            width: 50,
-            height: 50,
+            width: 48,
+            height: 48,
             alignment: Alignment.center,
             decoration: BoxDecoration(
               color: AppColors.softBlue,
-              borderRadius: BorderRadius.circular(15),
+              borderRadius: BorderRadius.circular(14),
             ),
-            child: const Icon(
-              Icons.record_voice_over_rounded,
+            child: Icon(
+              isJoined
+                  ? Icons.headset_mic_rounded
+                  : Icons.meeting_room_outlined,
               color: AppColors.primary,
-              size: 26,
+              size: 25,
             ),
           ),
 
-          const SizedBox(width: 13),
+          const SizedBox(width: 12),
 
           Expanded(
             child: Column(
@@ -719,47 +748,76 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: AppTextStyling.labelLarge.copyWith(
-                    fontWeight: FontWeight.w800,
                     color: AppColors.textPrimary,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
 
                 const SizedBox(height: 5),
 
-                Row(
-                  children: [
-                    const Icon(
-                      Icons.people_outline_rounded,
-                      color: AppColors.textSecondary,
-                      size: 15,
-                    ),
-
-                    const SizedBox(width: 5),
-
-                    Flexible(
-                      child: Text(
-                        '$memberCount remote members',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: AppTextStyling.bodySmall.copyWith(
-                          color: AppColors.textSecondary,
-                        ),
-                      ),
-                    ),
-                  ],
+                Text(
+                  isJoined
+                      ? 'Joined • $memberCount members'
+                      : '$memberCount members',
+                  style: AppTextStyling.bodySmall.copyWith(
+                    color: isJoined
+                        ? const Color(0xFF0AAE7A)
+                        : AppColors.textSecondary,
+                  ),
                 ),
               ],
             ),
           ),
 
-          IconButton(
-            tooltip: 'Delete room',
-            onPressed: () => _confirmDeleteRoom(roomId: roomId, roomName: name),
-            icon: Icon(
-              Icons.delete_outline_rounded,
-              color: Colors.red.shade400,
-              size: 22,
+          const SizedBox(width: 8),
+
+          if (isJoined)
+            OutlinedButton(
+              onPressed: () => _hostLeaveRoom(roomId),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: Colors.red.shade600,
+                side: BorderSide(color: Colors.red.shade200),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Leave'),
+            )
+          else
+            FilledButton(
+              onPressed: () => _hostJoinRoom(roomId),
+              style: FilledButton.styleFrom(
+                backgroundColor: AppColors.primary,
+                foregroundColor: Colors.white,
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 13,
+                  vertical: 10,
+                ),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text('Join'),
             ),
+
+          PopupMenuButton<String>(
+            tooltip: 'Room options',
+            icon: const Icon(
+              Icons.more_vert_rounded,
+              color: AppColors.textSecondary,
+            ),
+            onSelected: (value) {
+              if (value == 'delete') {
+                _confirmDeleteRoom(roomId: roomId, roomName: name);
+              }
+            },
+            itemBuilder: (context) => const [
+              PopupMenuItem(value: 'delete', child: Text('Delete Room')),
+            ],
           ),
         ],
       ),

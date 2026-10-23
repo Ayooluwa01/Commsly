@@ -5,6 +5,7 @@ import 'package:commsly/features/screens/connected/screen/server_dashboard_scree
 import 'package:commsly/features/screens/home/screens/create_server_screen.dart';
 import 'package:commsly/features/screens/home/screens/home_screen.dart';
 import 'package:commsly/features/screens/home/screens/join_server_screen.dart';
+import 'package:commsly/features/screens/rooms/screen/rooms_screen.dart';
 import 'package:commsly/features/screens/settings/screen/settings_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -22,6 +23,7 @@ final GlobalKey<NavigatorState> _connectedNavigatorKey =
 final GlobalKey<NavigatorState> _settingsNavigatorKey =
     GlobalKey<NavigatorState>();
 
+final _roomsNavigatorKey = GlobalKey<NavigatorState>();
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: Routenames.homescreen,
@@ -71,6 +73,16 @@ final appRouter = GoRouter(
           ],
         ),
 
+        // ROOMS
+        StatefulShellBranch(
+          navigatorKey: _roomsNavigatorKey,
+          routes: [
+            GoRoute(
+              path: '/rooms',
+              builder: (context, state) => const RoomsScreen(),
+            ),
+          ],
+        ),
         // SETTINGS
         StatefulShellBranch(
           navigatorKey: _settingsNavigatorKey,

@@ -11,6 +11,8 @@ class CommslyRoom {
   final String id;
   String name;
   final Set<WebSocketChannel> members = {};
+  bool hostJoined = false;
+  int get memberCount => members.length + (hostJoined ? 1 : 0);
   CommslyRoom({required this.id, required this.name});
 }
 
@@ -25,7 +27,8 @@ class CommslyServer {
   String? _serverPin;
   bool _isStarting = false;
   bool get isRunning => _server != null;
-  int get memberCount => _clients.length + (isRunning ? 1 : 0);
+  // + (isRunning ? 1 : 0)
+  int get memberCount => _clients.length;
   List<CommslyRoom> get rooms => List.unmodifiable(_rooms.values);
   Future<bool> startServer({required String deviceName, String? pin}) async {
     if (isRunning || _isStarting) return false;
@@ -266,7 +269,7 @@ class CommslyServer {
         return {
           'id': room.id,
           'name': room.name,
-          'memberCount': room.members.length,
+          'memberCount': room.memberCount,
           'isJoined': room.members.contains(socket),
         };
       }).toList(),
@@ -287,19 +290,42 @@ class CommslyServer {
     }
   }
 
+  // ----------
+  // HOST :JOIN ROOM
+  // --------------
+
+  bool hostJoinRoom(String roomId) {
+    if (!isRunning) return false;
+    final room = _rooms[roomId];
+    if (room == null) return false;
+    if (room.hostJoined) return true;
+    room.hostJoined = true;
+    _broadcastRoomLists();
+    developer.log('Host joined room: ${room.name}');
+    return true;
+  }
+
+  bool hostLeaveRoom(String roomId) {
+    if (!isRunning) return false;
+    final room = _rooms[roomId];
+    if (room == null) return false;
+    if (!room.hostJoined) return true;
+    room.hostJoined = false;
+    _broadcastRoomLists();
+    developer.log('Host left room: ${room.name}');
+    return true;
+  }
+
   // ------------------------------------------
   // DISCONNECT
   // ------------------------------------------
 
   void _disconnectClient(WebSocketChannel socket) {
     _clients.remove(socket);
-
     for (final room in _rooms.values) {
       room.members.remove(socket);
     }
-
     _broadcastRoomLists();
-
     developer.log('Client disconnected');
   }
 

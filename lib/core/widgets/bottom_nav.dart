@@ -72,6 +72,15 @@ class BottomNav extends StatelessWidget {
                 child: _navItem(
                   index: 2,
                   selectedIndex: selectedIndex,
+                  icon: Icons.people_alt_outlined,
+                  activeIcon: Icons.people,
+                  label: 'Rooms',
+                ),
+              ),
+              Expanded(
+                child: _navItem(
+                  index: 3,
+                  selectedIndex: selectedIndex,
                   icon: Icons.settings_outlined,
                   activeIcon: Icons.settings_rounded,
                   label: 'Settings',

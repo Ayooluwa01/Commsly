@@ -12,6 +12,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.light,
+      fontFamily: 'PlusJakarta',
       scaffoldBackgroundColor: AppColors.background,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,
@@ -34,6 +35,7 @@ abstract final class AppTheme {
     return ThemeData(
       useMaterial3: true,
       brightness: Brightness.dark,
+      fontFamily: 'PlusJakarta',
       scaffoldBackgroundColor: AppColors.navy,
       colorScheme: ColorScheme.fromSeed(
         seedColor: AppColors.primary,

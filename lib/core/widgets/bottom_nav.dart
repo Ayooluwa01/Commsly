@@ -1,3 +1,4 @@
+import 'package:commsly/themes/app_colors.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
@@ -6,8 +7,7 @@ class BottomNav extends StatelessWidget {
 
   const BottomNav({super.key, required this.navigationShell});
 
-  static const Color primaryBlue = Color(0xFF087BFF);
-  static const Color inactiveColor = Color(0xFF6C7D99);
+  static const Color _inactiveColor = Color(0xFF8290A7);
 
   void _onTap(int index) {
     navigationShell.goBranch(
@@ -18,74 +18,128 @@ class BottomNav extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final selectedIndex = navigationShell.currentIndex;
+
     return Scaffold(
-      backgroundColor: const Color(0xFFF7FAFF),
-
+      backgroundColor: AppColors.background,
       body: navigationShell,
-
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
-          boxShadow: [
-            BoxShadow(
-              color: const Color(0xFF071C3D).withValues(alpha: 0.06),
-              blurRadius: 18,
-              offset: const Offset(0, -4),
-            ),
-          ],
-        ),
-        child: SafeArea(
-          top: false,
-          child: NavigationBarTheme(
-            data: NavigationBarThemeData(
-              backgroundColor: Colors.transparent,
-              indicatorColor: const Color(0xFFE8F2FF),
-              labelTextStyle: WidgetStateProperty.resolveWith(
-                (states) => TextStyle(
-                  fontSize: 12,
-                  fontWeight: states.contains(WidgetState.selected)
-                      ? FontWeight.w700
-                      : FontWeight.w500,
-                  color: states.contains(WidgetState.selected)
-                      ? primaryBlue
-                      : inactiveColor,
-                ),
+      extendBody: true,
+      bottomNavigationBar: SafeArea(
+        top: false,
+        minimum: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+        child: Container(
+          height: 78,
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 7),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(26),
+            border: Border.all(color: const Color(0xFFEAF0FA), width: 1),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withValues(alpha: 0.10),
+                blurRadius: 28,
+                spreadRadius: 0,
+                offset: const Offset(0, 8),
               ),
-              iconTheme: WidgetStateProperty.resolveWith(
-                (states) => IconThemeData(
-                  size: 25,
-                  color: states.contains(WidgetState.selected)
-                      ? primaryBlue
-                      : inactiveColor,
-                ),
+              BoxShadow(
+                color: AppColors.primary.withValues(alpha: 0.04),
+                blurRadius: 16,
+                offset: const Offset(0, 2),
               ),
-            ),
-            child: NavigationBar(
-              height: 72,
-              backgroundColor: Colors.transparent,
-              elevation: 0,
-              selectedIndex: navigationShell.currentIndex,
-              onDestinationSelected: _onTap,
-              destinations: const [
-                NavigationDestination(
-                  icon: Icon(Icons.home_outlined),
-                  selectedIcon: Icon(Icons.home_rounded),
+            ],
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: _navItem(
+                  index: 0,
+                  selectedIndex: selectedIndex,
+                  icon: Icons.home_outlined,
+                  activeIcon: Icons.home_rounded,
                   label: 'Home',
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.cell_tower_outlined),
-                  selectedIcon: Icon(Icons.cell_tower),
+              ),
+              Expanded(
+                child: _navItem(
+                  index: 1,
+                  selectedIndex: selectedIndex,
+                  icon: Icons.cell_tower_outlined,
+                  activeIcon: Icons.cell_tower_rounded,
                   label: 'Connected',
                 ),
-                NavigationDestination(
-                  icon: Icon(Icons.settings_outlined),
-                  selectedIcon: Icon(Icons.settings_rounded),
+              ),
+              Expanded(
+                child: _navItem(
+                  index: 2,
+                  selectedIndex: selectedIndex,
+                  icon: Icons.settings_outlined,
+                  activeIcon: Icons.settings_rounded,
                   label: 'Settings',
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
+        ),
+      ),
+    );
+  }
+
+  Widget _navItem({
+    required int index,
+    required int selectedIndex,
+    required IconData icon,
+    required IconData activeIcon,
+    required String label,
+  }) {
+    final isSelected = selectedIndex == index;
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => _onTap(index),
+        borderRadius: BorderRadius.circular(20),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 240),
+              curve: Curves.easeOutCubic,
+              height: 36,
+              width: isSelected ? 64 : 48,
+              decoration: BoxDecoration(
+                gradient: isSelected
+                    ? const LinearGradient(
+                        colors: [Color(0xFFE6F2FF), Color(0xFFD8EAFF)],
+                      )
+                    : null,
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: AnimatedSwitcher(
+                duration: const Duration(milliseconds: 200),
+                transitionBuilder: (child, animation) {
+                  return ScaleTransition(scale: animation, child: child);
+                },
+                child: Icon(
+                  isSelected ? activeIcon : icon,
+                  key: ValueKey(isSelected),
+                  size: 24,
+                  color: isSelected ? AppColors.primary : _inactiveColor,
+                ),
+              ),
+            ),
+            const SizedBox(height: 3),
+            AnimatedDefaultTextStyle(
+              duration: const Duration(milliseconds: 200),
+              style: TextStyle(
+                fontSize: 11,
+                letterSpacing: isSelected ? 0.1 : 0,
+                fontWeight: isSelected ? FontWeight.w800 : FontWeight.w500,
+                color: isSelected ? AppColors.primary : _inactiveColor,
+              ),
+              child: Text(label, maxLines: 1, overflow: TextOverflow.ellipsis),
+            ),
+          ],
         ),
       ),
     );

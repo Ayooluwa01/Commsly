@@ -1,3 +1,4 @@
+import 'package:commsly/core/network/server/commsly_client_provider.dart';
 import 'package:commsly/core/network/server/hosted_server_provider.dart';
 import 'package:commsly/core/network/server/server_controller.dart';
 import 'package:commsly/core/router/routeNames.dart';
@@ -18,6 +19,7 @@ class ServerDashboardScreen extends ConsumerStatefulWidget {
 
 class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
   bool _ending = false;
+  bool _leaving = false;
 
   Future<void> _confirmEndServer() async {
     if (_ending) return;
@@ -86,8 +88,17 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
   Widget build(BuildContext context) {
     final server = ref.watch(serverControllerProvider);
     final hostedName = ref.watch(hostedServerNameProvider);
+    final client = ref.watch(commslyClientProvider);
+
     final isHosting = server.isRunning && hostedName != null;
-    if (!isHosting) {
+    final isJoined = client.isConnected;
+
+    final hasActiveServer = isHosting || isJoined;
+    final serverName = isHosting
+        ? hostedName!
+        : (client.server?.name ?? 'Server');
+
+    if (!hasActiveServer) {
       return Scaffold(
         backgroundColor: AppColors.background,
         appBar: AppBar(
@@ -105,14 +116,14 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
               ),
               const SizedBox(height: 16),
               Text(
-                'No hosted server is active',
+                'No active server connection',
                 style: AppTextStyling.bodyLarge.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
               ),
               const SizedBox(height: 12),
               TextButton(
-                onPressed: () => context.go('/home'),
+                onPressed: () => context.go(Routenames.homescreen),
                 child: const Text('Back to Home'),
               ),
             ],
@@ -146,7 +157,7 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _serverHero(hostedName),
+              _serverHero(serverName, isHosting: isHosting),
               const SizedBox(height: 20),
               _quickStats(),
               const SizedBox(height: 28),
@@ -160,11 +171,11 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
               const SizedBox(height: 28),
               _sectionHeading('Server Information', Icons.info_outline_rounded),
               const SizedBox(height: 14),
-              _informationCard(hostedName),
+              _informationCard(serverName, isHosting: isHosting),
               // const SizedBox(height: 24),
               // _serverManagementCard(context),
               const SizedBox(height: 16),
-              _endServerButton(),
+              if (isHosting) _endServerButton() else _leaveServerButton(),
             ],
           ),
         ),
@@ -172,7 +183,7 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
     );
   }
 
-  Widget _serverHero(String name) {
+  Widget _serverHero(String name, {required bool isHosting}) {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(22),
@@ -207,7 +218,9 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
           const SizedBox(height: 8),
 
           Text(
-            'Your local communication server',
+            isHosting
+                ? 'Your local communication server'
+                : 'Connected to a local server',
             style: AppTextStyling.bodyMedium.copyWith(
               color: Colors.white.withValues(alpha: 0.8),
             ),
@@ -418,7 +431,7 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
     );
   }
 
-  Widget _informationCard(String name) {
+  Widget _informationCard(String name, {required bool isHosting}) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: _cardDecoration(),
@@ -428,9 +441,9 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
           const Divider(height: 26),
           _infoRow('Connection', 'Local Wi-Fi / Hotspot'),
           const Divider(height: 26),
-          _infoRow('Role', 'Host'),
+          _infoRow('Role', isHosting ? 'Host' : 'Member'),
           const Divider(height: 26),
-          _infoRow('Status', 'Running'),
+          _infoRow('Status', isHosting ? 'Running' : 'Connected'),
           const Divider(height: 26),
           _infoRow('PIN Protection', 'Disabled'),
         ],
@@ -489,6 +502,67 @@ class _ServerDashboardScreenState extends ConsumerState<ServerDashboardScreen> {
   //     ),
   //   );
   // }
+
+  Future<void> _confirmLeaveServer() async {
+    if (_leaving) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Leave server?'),
+        content: const Text('You will disconnect from this server.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Leave Server'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _leaving = true);
+    try {
+      await ref.read(commslyClientProvider.notifier).leaveServer();
+      if (!mounted) return;
+      context.go(Routenames.homescreen);
+    } catch (error) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Could not leave server: $error')),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _leaving = false);
+    }
+  }
+
+  Widget _leaveServerButton() {
+    return SizedBox(
+      width: double.infinity,
+      height: 54,
+      child: OutlinedButton.icon(
+        onPressed: _leaving ? null : _confirmLeaveServer,
+        icon: _leaving
+            ? const SizedBox(
+                width: 18,
+                height: 18,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.logout_rounded),
+        label: Text(_leaving ? 'Leaving...' : 'Leave Server'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: Colors.red.shade700,
+          side: BorderSide(color: Colors.red.shade300),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(16),
+          ),
+        ),
+      ),
+    );
+  }
 
   Widget _endServerButton() {
     return SizedBox(

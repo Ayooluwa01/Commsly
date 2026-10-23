@@ -1,8 +1,7 @@
-import 'dart:developer' as developer;
-
 import 'package:commsly/core/network/models/nearby_server.dart';
 import 'package:commsly/core/network/discovery/discovery_provider.dart';
 import 'package:commsly/core/network/server/server_controller.dart';
+import 'package:commsly/core/network/server/commsly_client_provider.dart';
 import 'package:commsly/core/router/routeNames.dart';
 import 'package:commsly/themes/app_colors.dart';
 import 'package:commsly/themes/appText_styling.dart';
@@ -13,17 +12,8 @@ import 'package:go_router/go_router.dart';
 
 import 'enter_pin_screen.dart';
 
-typedef ServerJoin =
-    Future<bool> Function(DiscoveredServer server, String? pin);
-
 class JoinServerScreen extends ConsumerStatefulWidget {
-  final ServerJoin? joinServer;
-  final bool hasJoinedServer;
-  const JoinServerScreen({
-    super.key,
-    this.joinServer,
-    this.hasJoinedServer = false,
-  });
+  const JoinServerScreen({super.key});
 
   @override
   ConsumerState<JoinServerScreen> createState() => _JoinServerScreenState();
@@ -36,8 +26,12 @@ class _JoinServerScreenState extends ConsumerState<JoinServerScreen> {
   bool _isJoining = false;
 
   bool get _hasActiveServer {
-    return ref.read(serverControllerProvider).isRunning ||
-        widget.hasJoinedServer;
+    final host = ref.read(serverControllerProvider);
+    final client = ref.read(commslyClientProvider);
+    return host.isRunning ||
+        host.isBusy ||
+        client.isConnected ||
+        client.isConnecting;
   }
 
   Future<void> _refreshServers() async {
@@ -62,7 +56,10 @@ class _JoinServerScreenState extends ConsumerState<JoinServerScreen> {
 
   Future<void> _joinSelectedServer({bool forcePin = false}) async {
     final selected = _selectedServer;
-    developer.log('IP ADDRESS ${selected!.address}');
+    if (selected == null) {
+      _showMessage('Select a server first.');
+      return;
+    }
 
     if (_hasActiveServer) {
       _showMessage(
@@ -105,31 +102,21 @@ class _JoinServerScreenState extends ConsumerState<JoinServerScreen> {
       return false;
     }
 
-    if (widget.joinServer == null) {
-      _showMessage(
-        'The local server connection service '
-        'has not been connected yet.',
-      );
-      return false;
-    }
-
     if (_isJoining) return false;
 
     setState(() => _isJoining = true);
 
     try {
-      // This callback must perform the actual
-      // WebSocket connection, authentication,
-      // and session state update.
-      final success = await widget.joinServer!(server, pin);
+      final success = await ref
+          .read(commslyClientProvider.notifier)
+          .joinServer(server: server, displayName: 'Commsly User', pin: pin);
 
       if (!mounted) return false;
 
       if (!success) {
-        _showMessage(
-          'Unable to join this server. '
-          'Check your connection or PIN.',
-        );
+        final error = ref.read(commslyClientProvider).error;
+        _showMessage(error ?? 'Unable to join server.');
+        return false;
       }
 
       return success;
@@ -502,7 +489,14 @@ class _JoinServerScreenState extends ConsumerState<JoinServerScreen> {
   Widget _bottomActions() {
     final servers = ref.watch(nearbyServersProvider).value ?? [];
     final selectionAvailable = servers.any((s) => s.id == _selectedServer?.id);
-    final canJoin = selectionAvailable && !_isJoining && !_hasActiveServer;
+    final client = ref.watch(commslyClientProvider);
+    final host = ref.watch(serverControllerProvider);
+    final active =
+        client.isConnected ||
+        client.isConnecting ||
+        host.isRunning ||
+        host.isBusy;
+    final canJoin = selectionAvailable && !_isJoining && !active;
 
     return Container(
       padding: const EdgeInsets.fromLTRB(20, 12, 20, 20),

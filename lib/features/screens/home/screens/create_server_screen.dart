@@ -42,13 +42,7 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
 
   Future<void> _createServer() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_requirePin) {
-      _showMessage(
-        'PIN protection must be implemented on the server '
-        'before a protected server can be created.',
-      );
-      return;
-    }
+
     final server = ref.read(serverControllerProvider);
     if (server.isRunning || server.isBusy) {
       _showMessage('A server is already running or starting.');
@@ -62,7 +56,10 @@ class _CreateServerScreenState extends ConsumerState<CreateServerScreen> {
     try {
       final success = await ref
           .read(serverControllerProvider.notifier)
-          .startServer(deviceName: name);
+          .startServer(
+            deviceName: name,
+            pin: _requirePin ? _pinController.text.trim() : null,
+          );
 
       if (!mounted) return;
       if (success) {

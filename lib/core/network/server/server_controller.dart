@@ -44,11 +44,17 @@ class ServerController extends Notifier<ServerState> {
     return const ServerState();
   }
 
-  Future<bool> startServer({required String deviceName}) async {
+  Future<bool> startServer({required String deviceName, String? pin}) async {
     if (state.isBusy || state.isRunning) return false;
+
     state = ServerState(status: ServerStatus.starting, deviceName: deviceName);
+
     try {
-      final started = await _server.startServer(deviceName: deviceName);
+      final started = await _server.startServer(
+        deviceName: deviceName,
+        pin: pin,
+      );
+
       if (!started) {
         state = ServerState(
           status: ServerStatus.failure,
@@ -57,7 +63,9 @@ class ServerController extends Notifier<ServerState> {
         );
         return false;
       }
+
       state = ServerState(status: ServerStatus.running, deviceName: deviceName);
+
       return true;
     } catch (e) {
       state = ServerState(

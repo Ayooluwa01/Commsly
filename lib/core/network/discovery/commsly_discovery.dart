@@ -1,21 +1,36 @@
 import 'dart:async';
 import 'dart:developer' as developer;
 import 'dart:io';
+import 'dart:math';
 
 import 'package:bonsoir/bonsoir.dart';
 import 'package:commsly/core/network/models/nearby_server.dart';
+import 'package:intl/intl.dart';
 
 class CommslyDiscovery {
   static const String serviceType = '_commsly._tcp';
   BonsoirDiscovery? _bonsoirDiscovery;
   StreamSubscription<BonsoirDiscoveryEvent>? _subscription;
-  final Map<String, NearbyServer> _nearby = {};
-  final _serversController = StreamController<List<NearbyServer>>.broadcast();
+  final Map<String, DiscoveredServer> _nearby = {};
+  final _serversController =
+      StreamController<List<DiscoveredServer>>.broadcast();
   bool _isStarting = false;
   bool _isDisposed = false;
   bool get isSearching => _bonsoirDiscovery != null;
-  List<NearbyServer> get nearbyServers => List.unmodifiable(_nearby.values);
-  Stream<List<NearbyServer>> get serversStream => _serversController.stream;
+  List<DiscoveredServer> get nearbyServers => List.unmodifiable(_nearby.values);
+  Stream<List<DiscoveredServer>> get serversStream => _serversController.stream;
+
+  String generateCustomId(String serviceName) {
+    final random = Random();
+    int randomNumber = random.nextInt(900000) + 100000;
+    String formattedDate = DateFormat('yyyyMMdd_HHmm').format(DateTime.now());
+    const chars = 'abcdefghijklmnopqrstuvwxyz0123456789';
+    String randomText = List.generate(
+      4,
+      (index) => chars[random.nextInt(chars.length)],
+    ).join();
+    return '$serviceName.$randomNumber.$formattedDate.$randomText';
+  }
 
   // START DISCOVERY
   Future<void> startDiscovery() async {
@@ -99,7 +114,8 @@ class CommslyDiscovery {
       return;
     }
 
-    final server = NearbyServer(
+    final server = DiscoveredServer(
+      id: '${service.name}|$ipv4|${service.port}',
       name: service.name,
       address: ipv4,
       port: service.port,

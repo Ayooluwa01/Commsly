@@ -1,4 +1,5 @@
 import 'package:commsly/core/network/server/commsly_server.dart';
+import 'package:commsly/core/network/server/hosted_server_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 enum ServerStatus { stopped, starting, running, stopping, failure }
@@ -72,10 +73,10 @@ class ServerController extends Notifier<ServerState> {
     if (state.isBusy || !state.isRunning) return;
     final name = state.deviceName;
     state = ServerState(status: ServerStatus.stopping, deviceName: name);
-
     try {
       await _server.stop();
       state = const ServerState();
+      ref.read(hostedServerNameProvider.notifier).clear();
     } catch (e) {
       state = ServerState(
         status: ServerStatus.failure,

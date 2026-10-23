@@ -1,7 +1,10 @@
 import 'package:commsly/core/router/routeNames.dart';
 import 'package:commsly/core/widgets/bottom_nav.dart';
-import 'package:commsly/features/screens/home/screens/connected/screen/connected_screen.dart';
+import 'package:commsly/features/screens/connected/screen/connected_screen.dart';
+import 'package:commsly/features/screens/connected/screen/server_dashboard_screen.dart';
+import 'package:commsly/features/screens/home/screens/create_server_screen.dart';
 import 'package:commsly/features/screens/home/screens/home_screen.dart';
+import 'package:commsly/features/screens/home/screens/join_server_screen.dart';
 import 'package:commsly/features/screens/settings/screen/settings_screen.dart';
 
 import 'package:flutter/material.dart';
@@ -35,6 +38,18 @@ final appRouter = GoRouter(
             GoRoute(
               path: Routenames.homescreen,
               builder: (context, state) => const HomeScreen(),
+              routes: [
+                GoRoute(
+                  path: 'create-server',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => const CreateServerScreen(),
+                ),
+                GoRoute(
+                  path: 'join-server',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) => const JoinServerScreen(),
+                ),
+              ],
             ),
           ],
         ),
@@ -46,6 +61,12 @@ final appRouter = GoRouter(
             GoRoute(
               path: Routenames.connected,
               builder: (context, state) => const ConnectedScreen(),
+              routes: [
+                GoRoute(
+                  path: 'server-dashboard',
+                  builder: (context, state) => const ServerDashboardScreen(),
+                ),
+              ],
             ),
           ],
         ),

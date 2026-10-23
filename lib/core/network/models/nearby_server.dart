@@ -1,21 +1,19 @@
-class NearbyServer {
+class DiscoveredServer {
+  final String id;
   final String name;
   final String address;
   final int port;
+  final int? memberCount;
+  final bool requiresPin;
 
-  const NearbyServer({
+  const DiscoveredServer({
+    required this.id,
     required this.name,
     required this.address,
     required this.port,
+    this.memberCount,
+    this.requiresPin = false,
   });
 
-  String get id => '$name:$address:$port';
-
   Uri get websocketUri => Uri(scheme: 'ws', host: address, port: port);
-
-  @override
-  String toString() {
-    return 'NearbyServer(name: $name, '
-        'address: $address, port: $port)';
-  }
 }

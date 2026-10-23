@@ -1,25 +1,34 @@
+import 'package:commsly/core/network/server/hosted_server_provider.dart';
+import 'package:commsly/core/network/discovery/discovery_provider.dart';
+import 'package:commsly/core/network/models/nearby_server.dart';
+import 'package:commsly/core/network/server/server_controller.dart';
+import 'package:commsly/core/router/routeNames.dart';
 import 'package:commsly/core/widgets/logo.dart';
 import 'package:commsly/themes/appText_styling.dart';
 import 'package:commsly/themes/app_colors.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   static const double _radius = 20;
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
+    final serverState = ref.watch(serverControllerProvider);
+    final hostedName = ref.watch(hostedServerNameProvider);
+    final nearbyServers = ref.watch(nearbyServersProvider);
+
+    final hasHostedServer = serverState.isRunning && hostedName != null;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: SafeArea(
         bottom: false,
         child: RefreshIndicator(
-          onRefresh: () async {
-            // Connect to your Riverpod discovery
-            // controller when it is ready.
-          },
+          onRefresh: () => _refreshServers(ref),
           child: CustomScrollView(
             physics: const AlwaysScrollableScrollPhysics(),
             slivers: [
@@ -28,33 +37,48 @@ class HomeScreen extends StatelessWidget {
                 sliver: SliverList(
                   delegate: SliverChildListDelegate([
                     _buildHeader(context),
-
                     const SizedBox(height: 24),
-
                     _buildBanner(),
-
                     const SizedBox(height: 10),
-
-                    _buildActions(context),
-
+                    _buildActions(context, ref),
                     const SizedBox(height: 14),
-
                     _buildSectionHeader(
                       icon: Icons.wifi_rounded,
                       title: 'Nearby Servers',
                       action: 'Refresh',
                       actionIcon: Icons.refresh_rounded,
-                      onAction: () {
-                        // Trigger Bonsoir refresh.
-                      },
+                      onAction: () => _refreshServers(ref),
                     ),
-
                     const SizedBox(height: 8),
-
-                    _buildEmptyNearbyServer(),
-
+                    if (hasHostedServer)
+                      _buildMyServerCard(context, hostedName),
+                    nearbyServers.when(
+                      data: (servers) {
+                        // Keeps the locally hosted server in its own card.
+                        final remote = servers
+                            .where(
+                              (s) => !(hasHostedServer && s.name == hostedName),
+                            )
+                            .toList();
+                        if (remote.isEmpty) {
+                          return hasHostedServer
+                              ? const SizedBox.shrink()
+                              : _buildEmptyNearbyServer();
+                        }
+                        return Column(
+                          children: remote
+                              .map((s) => _buildNearbyServerCard(context, s))
+                              .toList(),
+                        );
+                      },
+                      loading: () => hasHostedServer
+                          ? const SizedBox.shrink()
+                          : const Center(child: CircularProgressIndicator()),
+                      error: (error, _) => hasHostedServer
+                          ? const SizedBox.shrink()
+                          : _buildEmptyNearbyServer(),
+                    ),
                     const SizedBox(height: 14),
-
                     _buildSectionHeader(
                       icon: Icons.history_rounded,
                       title: 'Recent Activity',
@@ -65,12 +89,188 @@ class HomeScreen extends StatelessWidget {
                         // when implemented.
                       },
                     ),
-
                     const SizedBox(height: 8),
-
                     _buildNoRecentActivity(),
                   ]),
                 ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _refreshServers(WidgetRef ref) async {
+    final discovery = ref.read(commslyDiscoveryProvider);
+    await discovery.stopDiscovery();
+    await discovery.startDiscovery();
+  }
+
+  Widget _buildNearbyServerCard(BuildContext context, DiscoveredServer server) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 10),
+      child: Material(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(16),
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: () => context.push(Routenames.joinServer),
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: AppColors.softBlue,
+                    borderRadius: BorderRadius.circular(14),
+                  ),
+                  child: const Icon(
+                    Icons.groups_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        server.name,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTextStyling.labelLarge.copyWith(
+                          color: AppColors.textPrimary,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        '${server.address}:${server.port}',
+                        style: AppTextStyling.bodySmall.copyWith(
+                          color: AppColors.textSecondary,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                const Icon(
+                  Icons.chevron_right_rounded,
+                  color: AppColors.primary,
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // MY SERVER
+
+  Widget _buildMyServerCard(BuildContext context, String serverName) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(18),
+        onTap: () {
+          context.go('/connected/server-dashboard');
+        },
+        child: Ink(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(color: AppColors.softBlue),
+            boxShadow: [
+              BoxShadow(
+                color: AppColors.navy.withValues(alpha: 0.04),
+                blurRadius: 15,
+                offset: const Offset(0, 5),
+              ),
+            ],
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 54,
+                height: 54,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  color: AppColors.softBlue,
+                  borderRadius: BorderRadius.circular(16),
+                ),
+                child: const Icon(
+                  Icons.dns_rounded,
+                  color: AppColors.primary,
+                  size: 28,
+                ),
+              ),
+
+              const SizedBox(width: 14),
+
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        Flexible(
+                          child: Text(
+                            serverName,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTextStyling.labelLarge.copyWith(
+                              fontSize: 15,
+                              color: AppColors.textPrimary,
+                              fontWeight: FontWeight.w800,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(height: 6),
+
+                    Row(
+                      children: [
+                        Container(
+                          width: 7,
+                          height: 7,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFF12BA82),
+                            shape: BoxShape.circle,
+                          ),
+                        ),
+                        const SizedBox(width: 6),
+                        Text(
+                          'Running',
+                          style: AppTextStyling.bodySmall.copyWith(
+                            color: const Color(0xFF12BA82),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          '• My Server',
+                          style: AppTextStyling.bodySmall.copyWith(
+                            color: AppColors.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(width: 8),
+
+              const Icon(
+                Icons.arrow_forward_ios_rounded,
+                color: AppColors.primary,
+                size: 17,
               ),
             ],
           ),
@@ -188,7 +388,7 @@ class HomeScreen extends StatelessWidget {
 
   // PRIMARY ACTIONS
 
-  Widget _buildActions(BuildContext context) {
+  Widget _buildActions(BuildContext context, WidgetRef ref) {
     return LayoutBuilder(
       builder: (context, constraints) {
         final isCompact = constraints.maxWidth < 340;
@@ -196,7 +396,22 @@ class HomeScreen extends StatelessWidget {
         final createButton = _buildButton(
           "Create Server",
           "Start a new server",
-          () => context.push('/create-server'),
+          () {
+            final current = ref.read(serverControllerProvider);
+            if (current.isRunning) {
+              context.go('/connected/server-dashboard');
+              return;
+            }
+            if (current.isBusy) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Server is starting or stopping.'),
+                ),
+              );
+              return;
+            }
+            context.push(Routenames.createServer);
+          },
           icon: Icons.add,
           gradient: AppColors.primaryGradient,
         );
@@ -204,7 +419,21 @@ class HomeScreen extends StatelessWidget {
         final joinButton = _buildButton(
           "Join Server",
           "Connect to existing",
-          () => context.push('/join-server'),
+          () {
+            final current = ref.read(serverControllerProvider);
+            if (current.isRunning) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'End your current server before joining another.',
+                  ),
+                ),
+              );
+              return;
+            }
+            if (current.isBusy) return;
+            context.push(Routenames.joinServer);
+          },
           icon: Icons.qr_code_scanner_sharp,
           gradient: AppColors.whiteGradient,
           textColor: AppColors.textPrimary,

@@ -32,7 +32,7 @@ class CommslyApp extends ConsumerWidget {
       debugShowCheckedModeBanner: false,
       title: 'CommslyApp',
       theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      // darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
       routerConfig: appRouter,
       builder: (context, child) {

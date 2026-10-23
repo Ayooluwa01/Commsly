@@ -28,4 +28,11 @@ abstract final class AppColors {
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
   );
+  static const whiteGradient = LinearGradient(
+    begin: Alignment(0.00, 1.00),
+    end: Alignment(-0.00, -1.00),
+    colors: [AppColors.softBlue, const Color(0xFFEC4899)],
+    stops: [1.00, 1.00],
+    tileMode: TileMode.clamp,
+  );
 }

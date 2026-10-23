@@ -57,7 +57,7 @@ dependencies:
   qr_flutter: ^4.1.0
   mobile_scanner: ^7.4.2
   change_app_package_name: ^1.4.0
-
+  lottie: ^3.6.1
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -112,7 +112,7 @@ flutter:
 
   # To add assets to your application, add an assets section, like this:
   assets:
-    - assets/images
+    - assets/images/
     # - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
@@ -129,8 +129,8 @@ flutter:
   fonts:
     - family: PlusJakarta
       fonts:
-        - asset: assets/fonts/PlusJakartaSans-Italic[wght].ttf
-        - asset: fonts/PlusJakartaSans[wght].ttf
+        - asset: assets/fonts/PlusJakartaSans-VariableFont_wght.ttf
+        - asset: assets/fonts/PlusJakartaSans-Italic-VariableFont_wght.ttf
           style: italic
   #   - family: Trajan Pro
   #     fonts:

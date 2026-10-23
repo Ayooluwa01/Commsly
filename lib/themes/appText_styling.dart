@@ -35,6 +35,9 @@ abstract final class AppTextStyling {
   static TextStyle get headlineMedium =>
       jakarta(fontSize: 20, fontWeight: FontWeight.w600);
 
+  static TextStyle get headlineSmall =>
+      jakarta(fontSize: 12, fontWeight: FontWeight.w600);
+
   static TextStyle get bodyLarge =>
       jakarta(fontSize: 16, fontWeight: FontWeight.normal);
 

@@ -2,6 +2,7 @@ import 'package:commsly/core/network/server/commsly_client_provider.dart';
 import 'package:commsly/core/network/server/server_controller.dart';
 import 'package:commsly/core/router/routeNames.dart';
 import 'package:commsly/core/widgets/logo.dart';
+import 'package:commsly/features/screens/rooms/screen/room_detail_screen.dart';
 import 'package:commsly/themes/app_colors.dart';
 import 'package:commsly/themes/appText_styling.dart';
 
@@ -104,10 +105,11 @@ class _RoomsScreenState extends ConsumerState<RoomsScreen> {
       return;
     }
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => RoomCommunicationScreen(roomId: id, roomName: name),
-      ),
+    context.push(
+      Uri(
+        path: Routenames.roomDetailPath(id),
+        queryParameters: {'name': name},
+      ).toString(),
     );
   }
 

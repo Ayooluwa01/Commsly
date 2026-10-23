@@ -1,29 +1,27 @@
 import 'package:commsly/core/router/routeNames.dart';
 import 'package:commsly/core/widgets/bottom_nav.dart';
+
+import 'package:commsly/features/screens/home/screens/home_screen.dart';
+import 'package:commsly/features/screens/home/screens/create_server_screen.dart';
+import 'package:commsly/features/screens/home/screens/join_server_screen.dart';
+
+import 'package:commsly/features/screens/rooms/screen/rooms_screen.dart';
+import 'package:commsly/features/screens/rooms/screen/room_detail_screen.dart';
+
 import 'package:commsly/features/screens/connected/screen/connected_screen.dart';
 import 'package:commsly/features/screens/connected/screen/server_dashboard_screen.dart';
-import 'package:commsly/features/screens/home/screens/create_server_screen.dart';
-import 'package:commsly/features/screens/home/screens/home_screen.dart';
-import 'package:commsly/features/screens/home/screens/join_server_screen.dart';
-import 'package:commsly/features/screens/rooms/screen/rooms_screen.dart';
+
 import 'package:commsly/features/screens/settings/screen/settings_screen.dart';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
-// Replace these imports with your actual screen paths.
-
-final GlobalKey<NavigatorState> _rootNavigatorKey = GlobalKey<NavigatorState>();
-
-final GlobalKey<NavigatorState> _homeNavigatorKey = GlobalKey<NavigatorState>();
-
-final GlobalKey<NavigatorState> _connectedNavigatorKey =
-    GlobalKey<NavigatorState>();
-
-final GlobalKey<NavigatorState> _settingsNavigatorKey =
-    GlobalKey<NavigatorState>();
-
+final _rootNavigatorKey = GlobalKey<NavigatorState>();
+final _homeNavigatorKey = GlobalKey<NavigatorState>();
 final _roomsNavigatorKey = GlobalKey<NavigatorState>();
+final _connectedNavigatorKey = GlobalKey<NavigatorState>();
+final _settingsNavigatorKey = GlobalKey<NavigatorState>();
+
 final appRouter = GoRouter(
   navigatorKey: _rootNavigatorKey,
   initialLocation: Routenames.homescreen,
@@ -33,7 +31,7 @@ final appRouter = GoRouter(
         return BottomNav(navigationShell: navigationShell);
       },
       branches: [
-        // HOME
+        // 0 - HOME
         StatefulShellBranch(
           navigatorKey: _homeNavigatorKey,
           routes: [
@@ -56,7 +54,32 @@ final appRouter = GoRouter(
           ],
         ),
 
-        // CONNECTED
+        // 1 - ROOMS
+        StatefulShellBranch(
+          navigatorKey: _roomsNavigatorKey,
+          routes: [
+            GoRoute(
+              path: Routenames.rooms,
+              builder: (context, state) => const RoomsScreen(),
+              routes: [
+                GoRoute(
+                  path: ':roomId',
+                  parentNavigatorKey: _rootNavigatorKey,
+                  builder: (context, state) {
+                    final roomId = state.pathParameters['roomId'] ?? '';
+
+                    final roomName =
+                        state.uri.queryParameters['name'] ?? 'Room';
+
+                    return RoomDetailScreen(roomId: roomId, roomName: roomName);
+                  },
+                ),
+              ],
+            ),
+          ],
+        ),
+
+        // 2 - CONNECTED
         StatefulShellBranch(
           navigatorKey: _connectedNavigatorKey,
           routes: [
@@ -73,17 +96,7 @@ final appRouter = GoRouter(
           ],
         ),
 
-        // ROOMS
-        StatefulShellBranch(
-          navigatorKey: _roomsNavigatorKey,
-          routes: [
-            GoRoute(
-              path: '/rooms',
-              builder: (context, state) => const RoomsScreen(),
-            ),
-          ],
-        ),
-        // SETTINGS
+        // 3 - SETTINGS
         StatefulShellBranch(
           navigatorKey: _settingsNavigatorKey,
           routes: [

@@ -59,22 +59,23 @@ class BottomNav extends StatelessWidget {
                   label: 'Home',
                 ),
               ),
+
               Expanded(
                 child: _navItem(
                   index: 1,
                   selectedIndex: selectedIndex,
-                  icon: Icons.cell_tower_outlined,
-                  activeIcon: Icons.cell_tower_rounded,
-                  label: 'Connected',
+                  icon: Icons.people_alt_outlined,
+                  activeIcon: Icons.people,
+                  label: 'Rooms',
                 ),
               ),
               Expanded(
                 child: _navItem(
                   index: 2,
                   selectedIndex: selectedIndex,
-                  icon: Icons.people_alt_outlined,
-                  activeIcon: Icons.people,
-                  label: 'Rooms',
+                  icon: Icons.cell_tower_outlined,
+                  activeIcon: Icons.cell_tower_rounded,
+                  label: 'Server',
                 ),
               ),
               Expanded(
